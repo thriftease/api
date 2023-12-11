@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.12"
 django = "^5.0"
 graphene-django = "^3.1.5"
+django-cors-headers = "^4.3.1"
 
 
 [tool.poetry.group.dev.dependencies]

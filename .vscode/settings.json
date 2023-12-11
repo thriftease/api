@@ -27,11 +27,11 @@
             "source.convertImportFormat": "explicit"
         }
     },
-    "ruff.interpreter": ["python.exe"],
     "ruff.lint.args": ["--config=./ruff.toml"],
+    "ruff.format.args": ["--config=./ruff.toml"],
     "ruff.importStrategy": "fromEnvironment",
-    "mypy-type-checker.interpreter": ["python.exe"],
     "mypy-type-checker.args": ["--config-file=./mypy.ini"],
+    "mypy-type-checker.preferDaemon": true,
     "mypy-type-checker.importStrategy": "fromEnvironment",
     "mypy-type-checker.reportingScope": "workspace"
 }

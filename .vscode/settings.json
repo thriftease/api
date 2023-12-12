@@ -16,7 +16,7 @@
     },
     "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.importFormat": "relative",
+    "python.analysis.importFormat": "absolute",
     "[python]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff",

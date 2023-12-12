@@ -227,6 +227,17 @@ files = [
 ]
 
 [[package]]
+name = "polib"
+version = "1.2.0"
+description = "A library to manipulate gettext files (po and mo files)."
+optional = false
+python-versions = "*"
+files = [
+    {file = "polib-1.2.0-py2.py3-none-any.whl", hash = "sha256:1c77ee1b81feb31df9bca258cbc58db1bbb32d10214b173882452c73af06d62d"},
+    {file = "polib-1.2.0.tar.gz", hash = "sha256:f3ef94aefed6e183e342a8a269ae1fc4742ba193186ad76f175938621dbfc26b"},
+]
+
+[[package]]
 name = "promise"
 version = "2.3"
 description = "Promises/A+ implementation for Python"
@@ -307,6 +318,17 @@ files = [
 ]
 
 [[package]]
+name = "types-polib"
+version = "1.2.0.1"
+description = "Typing stubs for polib"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-polib-1.2.0.1.tar.gz", hash = "sha256:bd7f90ac43f26572b427a9d341a9363e0fa3084d5c0a79447246a579d47405f1"},
+    {file = "types_polib-1.2.0.1-py3-none-any.whl", hash = "sha256:af01929cc4c9d61827f2c869ec90cf28c20e3247093bb7181b384ec593e5bef6"},
+]
+
+[[package]]
 name = "types-pytz"
 version = "2023.3.1.1"
 description = "Typing stubs for pytz"
@@ -353,4 +375,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "897a7d49780da921ba245abbd3325b6744f6305c482d7e6d807028b785d2ea3f"
+content-hash = "c67d978484911a9ff8170462656091076a860dfe0478bf036b2f1fc508f51891"

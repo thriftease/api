@@ -1,4 +1,4 @@
-from graphene import Field, ObjectType, String
+from graphene import ObjectType, String
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
 
@@ -26,10 +26,9 @@ class UserType(DjangoObjectType):
 
 
 class CreateUserMutation(DjangoModelFormMutation):
-    user = Field(UserType)
-
     class Meta:
         form_class = UserForm
+        return_field_name = "data"
 
 
 class UserQuery(ObjectType):

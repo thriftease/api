@@ -4,6 +4,7 @@ from graphene_django.forms.mutation import DjangoModelFormMutation
 
 from users.forms import CreateUserForm, DeleteUserForm, UpdateUserForm
 from users.models import User
+from utils import PaginatorQueryInput, PaginatorQueryPayload
 
 
 class UserType(DjangoObjectType):
@@ -38,21 +39,28 @@ class ListUsersQueryInput(InputObjectType):
     pass
 
 
-class ListUsersQueryPayload(ObjectType):
+class ListUsersQueryPayload(PaginatorQueryPayload, ObjectType):
     data = List(UserType, required=True)
 
 
 class UserQuery(ObjectType):
     get_user = Field(GetUserQueryPayload, input=GetUserQueryInput(required=True))
-    list_users = Field(ListUsersQueryPayload)
+    list_users = Field(ListUsersQueryPayload, paginator=PaginatorQueryInput())
 
     @staticmethod
     def resolve_get_user(root, info, input: GetUserQueryInput):
         return GetUserQueryPayload(data=User.objects.get(pk=input.id))  # type: ignore
 
     @staticmethod
-    def resolve_list_users(root, info):
-        return ListUsersQueryPayload(data=User.objects.all())  # type: ignore
+    def resolve_list_users(
+        root,
+        info,
+        paginator: PaginatorQueryInput | None = None,
+    ):
+        data = User.objects.all().order_by("id")
+        paginator = paginator or PaginatorQueryInput()
+        data, dpaginator = paginator.paginate(data)
+        return ListUsersQueryPayload(data=data, paginator=dpaginator)  # type: ignore
 
 
 # mutations

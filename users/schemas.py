@@ -20,6 +20,8 @@ class UserType(DjangoObjectType):
             "family_name",
             "suffix",
         )
+        # filterset_class = UserFilter
+        # interfaces = (relay.Node,)
 
     @staticmethod
     def resolve_full_name(parent: User, info):
@@ -44,6 +46,8 @@ class ListUsersQueryPayload(PaginatorQueryPayload, ObjectType):
 
 
 class UserQuery(ObjectType):
+    # get_user = relay.Node.Field(UserType)
+    # list_users = DjangoFilterConnectionField(UserType)
     get_user = Field(GetUserQueryPayload, input=GetUserQueryInput(required=True))
     list_users = Field(ListUsersQueryPayload, paginator=PaginatorQueryInput())
 

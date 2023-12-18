@@ -3,6 +3,8 @@ from django.contrib.auth.hashers import identify_hasher
 from django.db import models
 from django.utils.translation import gettext as _
 
+from utils import validate_password
+
 
 class UserManager(BaseUserManager):
     def create_user(
@@ -34,6 +36,7 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True, max_length=50)
+    password = models.CharField(max_length=128, validators=[validate_password])
     given_name = models.CharField(max_length=50)
     middle_name = models.CharField(blank=True, default="", max_length=50)
     family_name = models.CharField(max_length=50)

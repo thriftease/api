@@ -1,8 +1,10 @@
+import re
 from typing import Any, Iterable, TypeVar
 
 from django.core.paginator import Paginator
 from django.db import models
-from django.forms import ModelForm
+from django.forms import ModelForm, ValidationError
+from django.utils.translation import gettext as _
 from django_filters import FilterSet
 from graphene import (
     Argument,
@@ -158,3 +160,32 @@ def filter_order_paginate(
     paginator = paginator or PaginatorQueryInput()
     data, dpaginator = paginator.paginate(data)
     return data, dict(paginator=dpaginator)
+
+
+def validate_password(value: str | None = None):
+    if isinstance(value, str):
+        if not re.search(r"[a-z]", value):
+            raise ValidationError(
+                _("The password must contain at least one lowercase letter."),
+                "password_no_lowercase",
+            )
+        if not re.search(r"[A-Z]", value):
+            raise ValidationError(
+                _("The password must contain at least one uppercase letter."),
+                "password_no_uppercase",
+            )
+        if not re.search(r"[0-9]", value):
+            raise ValidationError(
+                _("The password must contain at least one digit."), "password_no_digit"
+            )
+        if not re.search(r'[!@#$%^&*()_+=\-[\]{};:\'",.<>/?]', value):
+            raise ValidationError(
+                _("The password must contain at least one special character."),
+                "password_no_special",
+            )
+    if value is None or len(value) < 7:
+        raise ValidationError(
+            "This password is too short. It must contain at least "
+            "%(min_length)d characters.",
+            params={"min_length": 7},
+        )

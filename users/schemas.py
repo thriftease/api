@@ -1,10 +1,26 @@
-from graphene import ID, Field, InputObjectType, List, ObjectType, String
+from typing import Any
+
+from graphene import (
+    ID,
+    Field,
+    InputObjectType,
+    List,
+    ObjectType,
+    String,
+)
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
 
-from users.forms import CreateUserForm, DeleteUserForm, UpdateUserForm
+from users.filters import UserFilter
+from users.forms import CreateUserForm, DeleteUserForm, OrderUserForm, UpdateUserForm
 from users.models import User
-from utils import PaginatorQueryInput, PaginatorQueryPayload
+from utils import (
+    PaginatorQueryInput,
+    PaginatorQueryPayload,
+    filter_order_paginate,
+    filter_to_filter_input_class,
+    form_to_order_argument,
+)
 
 
 class UserType(DjangoObjectType):
@@ -20,8 +36,6 @@ class UserType(DjangoObjectType):
             "family_name",
             "suffix",
         )
-        # filterset_class = UserFilter
-        # interfaces = (relay.Node,)
 
     @staticmethod
     def resolve_full_name(parent: User, info):
@@ -45,11 +59,18 @@ class ListUsersQueryPayload(PaginatorQueryPayload, ObjectType):
     data = List(UserType, required=True)
 
 
+class UserFilterQueryInput(filter_to_filter_input_class(UserFilter)):  # type: ignore[misc]
+    pass
+
+
 class UserQuery(ObjectType):
-    # get_user = relay.Node.Field(UserType)
-    # list_users = DjangoFilterConnectionField(UserType)
     get_user = Field(GetUserQueryPayload, input=GetUserQueryInput(required=True))
-    list_users = Field(ListUsersQueryPayload, paginator=PaginatorQueryInput())
+    list_users = Field(
+        ListUsersQueryPayload,
+        filter=UserFilterQueryInput(),
+        order=form_to_order_argument(OrderUserForm),
+        paginator=PaginatorQueryInput(),
+    )
 
     @staticmethod
     def resolve_get_user(root, info, input: GetUserQueryInput):
@@ -59,12 +80,13 @@ class UserQuery(ObjectType):
     def resolve_list_users(
         root,
         info,
+        filter: UserFilterQueryInput | None = None,
+        order: list[Any] | None = None,
         paginator: PaginatorQueryInput | None = None,
     ):
-        data = User.objects.all().order_by("id")
-        paginator = paginator or PaginatorQueryInput()
-        data, dpaginator = paginator.paginate(data)
-        return ListUsersQueryPayload(data=data, paginator=dpaginator)  # type: ignore
+        data = User.objects.all()
+        data, kwargs = filter_order_paginate(data, filter, order, paginator)
+        return ListUsersQueryPayload(data=data, **kwargs)  # type: ignore
 
 
 # mutations

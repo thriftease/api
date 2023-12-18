@@ -16,7 +16,7 @@ class UserManager(BaseUserManager):
             given_name=given_name,
             family_name=family_name,
             password=password,
-        )
+        )  # type: ignore
 
         user.save(using=self._db)
         return user

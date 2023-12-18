@@ -38,3 +38,19 @@ class DeleteUserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ()
+
+
+class OrderUserForm(forms.ModelForm):
+    id = forms.IntegerField()
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "password",
+            "given_name",
+            "middle_name",
+            "family_name",
+            "suffix",
+        )

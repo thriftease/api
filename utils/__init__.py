@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from typing import Any, Iterable, TypeVar
 
 from django.core.paginator import Paginator
@@ -192,3 +193,35 @@ def validate_password(value: str | None = None):
             "password_too_short",
             params={"min_length": 7},
         )
+
+
+class ObjectDict(Mapping):
+    def __init__(self, **kwargs: Any):
+        for k, v in kwargs.items():
+            self[k] = v
+
+    def __getattr__(self, name) -> Any:
+        return self.get(name, None)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __getitem__(self, key):
+        return vars(self)[key]
+
+    def __setitem__(self, key, value):
+        vars(self)[key] = value
+
+    def __iter__(self):
+        return iter(vars(self))
+
+    def __len__(self):
+        return len(vars(self))
+
+    def __contains__(self, key):
+        return key in vars(self)
+
+    def copy(self, **kwargs: Any):
+        kw = dict(vars(self))
+        kw.update(kwargs)
+        return type(self)(**kw)

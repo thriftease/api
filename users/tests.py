@@ -55,14 +55,14 @@ class TestCreateUserMutation(Schema):
     def test_email(self, gql: Any):
         # required
         nprops = props.copy(email="")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content, "createUser", "email", "This field is required."
         )
 
         # unique
-        mutation = self.mutation(self.createUser(*props.values()))
+        mutation = self.mutation(self.createUser(**props))
         gql(mutation)
         response = gql(mutation)
         content = json.loads(response.content)
@@ -72,7 +72,7 @@ class TestCreateUserMutation(Schema):
 
         # valid
         nprops = props.copy(email="1234")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content, "createUser", "email", "Enter a valid email address."
@@ -81,7 +81,7 @@ class TestCreateUserMutation(Schema):
     def test_password(self, gql: Any):
         # required
         nprops = props.copy(password="")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content, "createUser", "password", "This field is required."
@@ -89,7 +89,7 @@ class TestCreateUserMutation(Schema):
 
         # at least 1 uppercase letter
         nprops = props.copy(password="a")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content,
@@ -100,7 +100,7 @@ class TestCreateUserMutation(Schema):
 
         # at least 1 lowercase letter
         nprops = props.copy(password="A")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content,
@@ -111,7 +111,7 @@ class TestCreateUserMutation(Schema):
 
         # at least 1 digit
         nprops = props.copy(password="aA")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content,
@@ -122,7 +122,7 @@ class TestCreateUserMutation(Schema):
 
         # at least 1 special character
         nprops = props.copy(password="aA1")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content,
@@ -133,7 +133,7 @@ class TestCreateUserMutation(Schema):
 
         # at least 7 characters
         nprops = props.copy(password="@aA1")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content,
@@ -144,14 +144,14 @@ class TestCreateUserMutation(Schema):
 
         # complex
         nprops = props.copy(password="@aA1234")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert not self.has_field_error(content, "createUser", "password")
 
     def test_given_name(self, gql: Any):
         # required
         nprops = props.copy(given_name="")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content, "createUser", "givenName", "This field is required."
@@ -160,8 +160,44 @@ class TestCreateUserMutation(Schema):
     def test_family_name(self, gql: Any):
         # required
         nprops = props.copy(family_name="")
-        response = gql(self.mutation(self.createUser(*nprops.values())))
+        response = gql(self.mutation(self.createUser(**nprops)))
         content = json.loads(response.content)
         assert self.has_field_error(
             content, "createUser", "familyName", "This field is required."
+        )
+
+
+class TestUpdateUserMutation(Schema):
+    def init(self):
+        self.model = User(**props)
+
+    def test(self, gql: Any):
+        self.init()
+
+        nprops = props.copy(
+            id=1,
+            password=None,
+            given_name=None,
+            middle_name=None,
+            family_name=None,
+            suffix=None,
+        )
+        del nprops.email
+
+        # does not exist
+        response = gql(self.mutation(self.updateUser(**nprops)))
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "updateUser", "User matching query does not exist."
+        )
+
+        # updated
+        self.model.save()
+        nprops = nprops.copy(given_name="Testt", family_name="Userr")
+        response = gql(self.mutation(self.updateUser(**nprops)))
+        content = json.loads(response.content)
+        data = content["data"]["updateUser"]["data"]
+        assert (
+            data["givenName"] == nprops.given_name
+            and data["familyName"] == nprops.family_name
         )

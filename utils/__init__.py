@@ -206,11 +206,17 @@ class ObjectDict(Mapping):
     def __setattr__(self, name, value):
         self[name] = value
 
+    def __delattr__(self, name):
+        del self[name]
+
     def __getitem__(self, key):
         return vars(self)[key]
 
     def __setitem__(self, key, value):
         vars(self)[key] = value
+
+    def __delitem__(self, key):
+        vars(self).pop(key)
 
     def __iter__(self):
         return iter(vars(self))

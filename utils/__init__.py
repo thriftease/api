@@ -185,7 +185,10 @@ def validate_password(value: str | None = None):
             )
     if value is None or len(value) < 7:
         raise ValidationError(
-            "This password is too short. It must contain at least "
-            "%(min_length)d characters.",
+            _(
+                "This password is too short. It must contain at least "
+                "%(min_length)d characters."
+            ),
+            "password_too_short",
             params={"min_length": 7},
         )

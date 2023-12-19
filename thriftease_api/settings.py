@@ -138,3 +138,5 @@ LANGUAGES = [
     ("en-ph", _("English (Philippines)")),
     ("tl", _("Tagalog")),
 ]
+
+AUTH_USER_MODEL = "users.User"

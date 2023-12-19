@@ -27,11 +27,11 @@ class TestUserModel:
         self.init()
         self.model.save()
 
-        # test password
+        # password hash
         assert self.model.password != props.password
         assert self.model.check_password(props.password)
 
-        # test email uniqueness
+        # email unique
         model = User(**props)
         with pytest.raises(IntegrityError) as err:
             model.save()
@@ -41,7 +41,7 @@ class TestUserModel:
         self.init()
         self.model.save()
 
-        # test password
+        # password hash
         password = "@NewPassword1234"
         self.model.password = password
         self.model.save()

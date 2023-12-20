@@ -6,7 +6,7 @@ from graphql_jwt.utils import get_payload, get_user_by_payload
 from users.schemas import CreateUserMutation, UserType
 
 
-class AuthSignInMutation(ObtainJSONWebToken):
+class AuthSignInMutationPayload(ObtainJSONWebToken):
     user = Field(UserType)
 
     @classmethod
@@ -14,7 +14,7 @@ class AuthSignInMutation(ObtainJSONWebToken):
         return cls(user=info.context.user)
 
 
-class AuthVerifyMutation(Verify):
+class AuthVerifyMutationPayload(Verify):
     user = Field(UserType)
 
     @classmethod
@@ -25,6 +25,6 @@ class AuthVerifyMutation(Verify):
 
 
 class AuthMutation(ObjectType):
-    auth_sign_in = AuthSignInMutation.Field()
+    auth_sign_in = AuthSignInMutationPayload.Field()
     auth_sign_up = CreateUserMutation.Field()
-    auth_verify = AuthVerifyMutation.Field()
+    auth_verify = AuthVerifyMutationPayload.Field()

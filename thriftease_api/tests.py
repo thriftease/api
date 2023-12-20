@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import pytest
@@ -68,6 +69,27 @@ class Schema:
         return cls.to_object(**kw)
 
     @classmethod
+    def DeleteUserMutationInput(cls, id):
+        kw = dict(id=id)
+        return cls.to_object(**kw)
+
+    @classmethod
+    def GetUserQueryInput(cls, id):
+        kw = dict(id=id)
+        return cls.to_object(**kw)
+
+    @classmethod
+    def FilterOrderPaginatorQueryInput(cls, filter={}, order={}, paginator={}):
+        args = []
+        for d in (filter, order, paginator):
+            args.append(cls.to_object(**d) if d else cls.to_value(None))
+        return cls.to_object(**dict(filter=filter, order=order, paginator=paginator))
+
+    @classmethod
+    def ListUsersQueryInput(cls, filter={}, order={}, paginator={}):
+        return cls.FilterOrderPaginatorQueryInput(filter, order, paginator)
+
+    @classmethod
     def UserType(cls):
         return """
         {
@@ -89,6 +111,35 @@ class Schema:
         """
 
     @classmethod
+    def authSignIn(cls, **kwargs):
+        return f"""
+        authSignIn(email: {cls.to_value(kwargs['email'])}, password: {cls.to_value(kwargs['password'])}) {{
+            payload
+            refreshExpiresIn
+            user {cls.UserType()}
+            token
+        }}
+        """
+
+    @classmethod
+    def authVerify(cls, token: str):
+        return f"""
+        authVerify(token: {cls.to_value(token)}) {{
+            payload
+            user {cls.UserType()}
+        }}
+        """
+
+    @classmethod
+    def authSignUp(cls, **kwargs):
+        return f"""
+        authSignUp(input: {cls.CreateUserMutationInput(**kwargs)}) {{
+            data {cls.UserType()}
+            errors {cls.ErrorType()}
+        }}
+        """
+
+    @classmethod
     def createUser(cls, **kwargs):
         return f"""
         createUser(input: {cls.CreateUserMutationInput(**kwargs)}) {{
@@ -107,10 +158,36 @@ class Schema:
         """
 
     @classmethod
+    def deleteUser(cls, id):
+        return f"""
+        deleteUser(input: {cls.DeleteUserMutationInput(id)}) {{
+            data {cls.UserType()}
+            errors {cls.ErrorType()}
+        }}
+        """
+
+    @classmethod
+    def getUser(cls, id):
+        return f"""
+        getUser(input: {cls.GetUserQueryInput(id)}) {{
+            data {cls.UserType()}
+            errors {cls.ErrorType()}
+        }}
+        """
+
+    @classmethod
     def mutation(cls, *mutations: str):
         return f"""
         mutation {{
             {"\n".join(mutations)}
+        }}
+        """
+
+    @classmethod
+    def query(cls, *queries: str):
+        return f"""
+        query {{
+            {"\n".join(queries)}
         }}
         """
 
@@ -141,3 +218,8 @@ class Schema:
                         if m == e["message"]:
                             return True
         return False
+
+    def sign_in(self, gql: Any, **kwargs):
+        response = gql(self.mutation(self.authSignIn(**kwargs)))
+        content = json.loads(response.content)
+        return dict(HTTP_AUTHORIZATION=f'JWT {content["data"]["authSignIn"]["token"]}')

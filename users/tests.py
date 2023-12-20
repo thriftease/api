@@ -170,6 +170,7 @@ class TestCreateUserMutation(Schema):
 class TestUpdateUserMutation(Schema):
     def init(self):
         self.model = User(**props)
+        self.model1 = User(**props.copy(email="test1@email.com"))
 
     def test(self, gql: Any):
         self.init()
@@ -183,7 +184,6 @@ class TestUpdateUserMutation(Schema):
             suffix=None,
         )
         del nprops.email
-
         # does not exist
         response = gql(self.mutation(self.updateUser(**nprops)))
         content = json.loads(response.content)
@@ -191,13 +191,73 @@ class TestUpdateUserMutation(Schema):
             content, "updateUser", "User matching query does not exist."
         )
 
-        # updated
         self.model.save()
-        nprops = nprops.copy(given_name="Testt", family_name="Userr")
-        response = gql(self.mutation(self.updateUser(**nprops)))
+        self.model1.save()
+        headers = self.sign_in(gql, **props)
+
+        # updated other logged in
+        nprops = nprops.copy(id=2, given_name="Testt", family_name="Userr")
+        response = gql(self.mutation(self.updateUser(**nprops)), headers=headers)
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "updateUser", "You do not have permission to perform this action"
+        )
+
+        # updated logged in
+        nprops = nprops.copy(id=1, given_name="Testt", family_name="Userr")
+        response = gql(self.mutation(self.updateUser(**nprops)), headers=headers)
         content = json.loads(response.content)
         data = content["data"]["updateUser"]["data"]
         assert (
             data["givenName"] == nprops.given_name
             and data["familyName"] == nprops.family_name
+        )
+
+        # updated not logged in
+        nprops = nprops.copy(given_name="Testt", family_name="Userr")
+        response = gql(self.mutation(self.updateUser(**nprops)))
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "updateUser", "You do not have permission to perform this action"
+        )
+
+
+class TestDeleteUserMutation(Schema):
+    def init(self):
+        self.model = User(**props)
+        self.model1 = User(**props.copy(email="test1@email.com"))
+
+    def test(self, gql: Any):
+        self.init()
+
+        # does not exist
+        response = gql(self.mutation(self.deleteUser(1)))
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "deleteUser", "User matching query does not exist."
+        )
+
+        self.model.save()
+        self.model1.save()
+        headers = self.sign_in(gql, **props)
+
+        # deleted other logged in
+        response = gql(self.mutation(self.deleteUser(self.model1.pk)), headers=headers)
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "deleteUser", "You do not have permission to perform this action"
+        )
+
+        # deleted logged in
+        response = gql(self.mutation(self.deleteUser(self.model.pk)), headers=headers)
+        content = json.loads(response.content)
+        assert content["data"]["deleteUser"]["data"]
+
+        User(**props).save()
+
+        # deleted not logged in
+        response = gql(self.mutation(self.deleteUser(2)))
+        content = json.loads(response.content)
+        assert self.has_error(
+            content, "deleteUser", "You do not have permission to perform this action"
         )

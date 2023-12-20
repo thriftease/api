@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 from django.utils.translation import gettext_lazy as _
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "users",
+    "authentication",
 ]
 
 MIDDLEWARE = [
@@ -150,3 +152,9 @@ AUTHENTICATION_BACKENDS = [
     "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+GRAPHQL_JWT = {
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_EXPIRATION_DELTA": timedelta(hours=1) if DEBUG else timedelta(weeks=12),
+    "JWT_ALLOW_REFRESH": False,
+}

@@ -231,3 +231,8 @@ class ObjectDict(Mapping):
         kw = dict(vars(self))
         kw.update(kwargs)
         return type(self)(**kw)
+
+
+def info_user_check(info, user):
+    if info.context.user != user:
+        raise Exception(_("You do not have permission to perform this action"))

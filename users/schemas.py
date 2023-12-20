@@ -10,6 +10,7 @@ from graphene import (
 )
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
+from graphql_jwt.decorators import login_required
 
 from users.filters import UserFilter
 from users.forms import CreateUserForm, DeleteUserForm, OrderUserForm, UpdateUserForm
@@ -20,6 +21,7 @@ from utils import (
     filter_order_paginate,
     filter_to_filter_input_class,
     form_to_order_argument,
+    info_user_check,
 )
 
 
@@ -73,10 +75,14 @@ class UserQuery(ObjectType):
     )
 
     @staticmethod
+    @login_required
     def resolve_get_user(root, info, input: GetUserQueryInput):
-        return GetUserQueryPayload(data=User.objects.get(pk=input.id))  # type: ignore
+        data = User.objects.get(pk=input.id)
+        info_user_check(info, data)
+        return GetUserQueryPayload(data=data)  # type: ignore
 
     @staticmethod
+    @login_required
     def resolve_list_users(
         root,
         info,
@@ -84,7 +90,7 @@ class UserQuery(ObjectType):
         order: list[Any] | None = None,
         paginator: PaginatorQueryInput | None = None,
     ):
-        data = User.objects.all()
+        data = User.objects.filter(pk=info.context.user.pk)
         data, kwargs = filter_order_paginate(data, filter, order, paginator)
         return ListUsersQueryPayload(data=data, **kwargs)  # type: ignore
 
@@ -108,6 +114,12 @@ class UpdateUserMutation(DjangoModelFormMutation):
         exclude_fields = ("id",)
         return_field_name = "data"
 
+    @classmethod
+    @login_required
+    def perform_mutate(cls, form, info):
+        info_user_check(info, form.instance)
+        return super().perform_mutate(form, info)
+
 
 class DeleteUserMutation(DjangoModelFormMutation):
     class Input:
@@ -119,7 +131,9 @@ class DeleteUserMutation(DjangoModelFormMutation):
         return_field_name = "data"
 
     @classmethod
+    @login_required
     def perform_mutate(cls, form: DeleteUserForm, info):
+        info_user_check(info, form.instance)
         obj: User = form.save(commit=False)
         instance: User = form._meta.model._default_manager.get(pk=obj.pk)
         obj.delete()

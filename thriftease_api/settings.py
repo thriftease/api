@@ -130,7 +130,12 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-GRAPHENE = {"SCHEMA": "thriftease_api.schemas.schema"}
+GRAPHENE = {
+    "SCHEMA": "thriftease_api.schemas.schema",
+    "MIDDLEWARE": [
+        "graphql_jwt.middleware.JSONWebTokenMiddleware",
+    ],
+}
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -140,3 +145,8 @@ LANGUAGES = [
 ]
 
 AUTH_USER_MODEL = "users.User"
+
+AUTHENTICATION_BACKENDS = [
+    "graphql_jwt.backends.JSONWebTokenBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]

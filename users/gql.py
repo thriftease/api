@@ -7,7 +7,7 @@ from utils.gql import GqlAction, GqlArgument, GqlType
 class UserSchema(Schema):
     ErrorType = GqlType("field", "messages")
     UserType = GqlType(
-        "id", "email", "given_name", "middle_name", "family_name", "suffix", "fullName"
+        "id", "email", "given_name", "middle_name", "family_name", "suffix", "full_name"
     )
     UserPayload = GqlType(data=UserType, errors=ErrorType)
     CreateUserMutationInput = GqlArgument(

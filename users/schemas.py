@@ -15,14 +15,10 @@ from graphql_jwt.decorators import login_required
 from users.filters import UserFilter
 from users.forms import CreateUserForm, DeleteUserForm, OrderUserForm, UpdateUserForm
 from users.models import User
-from utils import (
-    PaginatorQueryInput,
-    PaginatorQueryPayload,
-    filter_order_paginate,
-    filter_to_filter_input_class,
-    form_to_order_argument,
-    info_user_check,
-)
+from utils import filter_order_paginate, info_user_check
+from utils.filter import filter_to_filter_input_class
+from utils.order import form_to_order_argument
+from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
 
 
 class UserType(DjangoObjectType):

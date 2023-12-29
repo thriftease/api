@@ -1,10 +1,5 @@
-from typing import Any
-
 from graphene import (
-    ID,
     Field,
-    InputObjectType,
-    List,
     ObjectType,
     String,
 )
@@ -12,13 +7,8 @@ from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
 from graphql_jwt.decorators import login_required
 
-from users.filters import UserFilter
-from users.forms import CreateUserForm, DeleteUserForm, OrderUserForm, UpdateUserForm
+from users.forms import CreateUserForm, DeleteUserForm, UpdateUserForm
 from users.models import User
-from utils import filter_order_paginate, info_user_check
-from utils.filter import filter_to_filter_input_class
-from utils.order import form_to_order_argument
-from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
 
 
 class UserType(DjangoObjectType):
@@ -41,54 +31,18 @@ class UserType(DjangoObjectType):
 
 
 # queries
-class GetUserQueryInput(InputObjectType):
-    id = ID(required=True)
-
-
 class GetUserQueryPayload(ObjectType):
     data = Field(UserType)
 
 
-class ListUsersQueryInput(InputObjectType):
-    pass
-
-
-class ListUsersQueryPayload(PaginatorQueryPayload, ObjectType):
-    data = List(UserType, required=True)
-
-
-class UserFilterQueryInput(filter_to_filter_input_class(UserFilter)):  # type: ignore[misc]
-    pass
-
-
 class UserQuery(ObjectType):
-    get_user = Field(GetUserQueryPayload, input=GetUserQueryInput(required=True))
-    list_users = Field(
-        ListUsersQueryPayload,
-        filter=UserFilterQueryInput(),
-        order=form_to_order_argument(OrderUserForm),
-        paginator=PaginatorQueryInput(),
-    )
+    get_user = Field(GetUserQueryPayload)
 
     @staticmethod
     @login_required
-    def resolve_get_user(root, info, input: GetUserQueryInput):
-        data = User.objects.get(pk=input.id)
-        info_user_check(info, data)
+    def resolve_get_user(root, info):
+        data = info.context.user
         return GetUserQueryPayload(data=data)  # type: ignore
-
-    @staticmethod
-    @login_required
-    def resolve_list_users(
-        root,
-        info,
-        filter: UserFilterQueryInput | None = None,
-        order: list[Any] | None = None,
-        paginator: PaginatorQueryInput | None = None,
-    ):
-        data = User.objects.filter(pk=info.context.user.pk)
-        data, kwargs = filter_order_paginate(data, filter, order, paginator)
-        return ListUsersQueryPayload(data=data, **kwargs)  # type: ignore
 
 
 # mutations
@@ -100,10 +54,6 @@ class CreateUserMutation(DjangoModelFormMutation):
 
 
 class UpdateUserMutation(DjangoModelFormMutation):
-    class Input:
-        # manually define the required id for the input
-        id = ID(required=True)
-
     class Meta:
         form_class = UpdateUserForm
         # exclude the default provided non-required id field from the input
@@ -112,15 +62,12 @@ class UpdateUserMutation(DjangoModelFormMutation):
 
     @classmethod
     @login_required
-    def perform_mutate(cls, form, info):
-        info_user_check(info, form.instance)
-        return super().perform_mutate(form, info)
+    def mutate_and_get_payload(cls, root, info, **input):
+        input["id"] = info.context.user.id
+        return super().mutate_and_get_payload(root, info, **input)
 
 
 class DeleteUserMutation(DjangoModelFormMutation):
-    class Input:
-        id = ID(required=True)
-
     class Meta:
         form_class = DeleteUserForm
         exclude_fields = ("id",)
@@ -128,8 +75,12 @@ class DeleteUserMutation(DjangoModelFormMutation):
 
     @classmethod
     @login_required
+    def mutate_and_get_payload(cls, root, info, **input):
+        input["id"] = info.context.user.id
+        return super().mutate_and_get_payload(root, info, **input)
+
+    @classmethod
     def perform_mutate(cls, form: DeleteUserForm, info):
-        info_user_check(info, form.instance)
         obj: User = form.save(commit=False)
         instance: User = form._meta.model._default_manager.get(pk=obj.pk)
         obj.delete()

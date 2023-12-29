@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django_filters",
     "users",
     "authentication",
+    "currencies",
 ]
 
 MIDDLEWARE = [
@@ -155,6 +156,6 @@ AUTHENTICATION_BACKENDS = [
 
 GRAPHQL_JWT = {
     "JWT_VERIFY_EXPIRATION": True,
-    "JWT_EXPIRATION_DELTA": timedelta(hours=1) if DEBUG else timedelta(weeks=12),
+    "JWT_EXPIRATION_DELTA": timedelta(days=1) if DEBUG else timedelta(weeks=12),
     "JWT_ALLOW_REFRESH": False,
 }

@@ -35,11 +35,13 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
-    email = models.EmailField(unique=True, max_length=50)
-    password = models.CharField(max_length=128, validators=[validate_password])
-    given_name = models.CharField(max_length=50)
+    email = models.EmailField(unique=True, default="", max_length=50)
+    password = models.CharField(
+        max_length=128, default="", validators=[validate_password]
+    )
+    given_name = models.CharField(max_length=50, default="")
     middle_name = models.CharField(blank=True, default="", max_length=50)
-    family_name = models.CharField(max_length=50)
+    family_name = models.CharField(max_length=50, default="")
     suffix = models.CharField(blank=True, default="", max_length=20)
 
     is_admin = models.BooleanField(blank=True, default=False)

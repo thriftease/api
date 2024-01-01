@@ -46,10 +46,6 @@ class GetCurrencyQueryPayload(ObjectType):
     data = Field(CurrencyType)
 
 
-class ListCurrenciesQueryInput(InputObjectType):
-    pass
-
-
 class ListCurrenciesQueryPayload(PaginatorQueryPayload, ObjectType):
     data = List(CurrencyType, required=True)
 

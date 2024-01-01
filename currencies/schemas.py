@@ -19,7 +19,7 @@ from currencies.forms import (
     UpdateCurrencyForm,
 )
 from currencies.models import Currency
-from utils import filter_order_paginate, info_user_check
+from utils import filter_order_paginate
 from utils.filter import filter_to_filter_input_class
 from utils.order import form_to_order_argument
 from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
@@ -62,7 +62,7 @@ class CurrencyQuery(ObjectType):
     get_currency = Field(
         GetCurrencyQueryPayload, input=GetCurrencyQueryInput(required=True)
     )
-    list_currency = Field(
+    list_currencies = Field(
         ListCurrenciesQueryPayload,
         filter=CurrencyFilterQueryInput(),
         order=form_to_order_argument(OrderCurrencyForm),
@@ -71,9 +71,8 @@ class CurrencyQuery(ObjectType):
 
     @staticmethod
     @login_required
-    def resolve_get_currencie(root, info, input: GetCurrencyQueryInput):
-        data = Currency._default_manager.get(pk=input.id)
-        info_user_check(info, data.user)
+    def resolve_get_currency(root, info, input: GetCurrencyQueryInput):
+        data = Currency._default_manager.get(pk=input.id, user=info.context.user)
         return GetCurrencyQueryPayload(data=data)  # type: ignore
 
     @staticmethod
@@ -85,7 +84,7 @@ class CurrencyQuery(ObjectType):
         order: list[Any] | None = None,
         paginator: PaginatorQueryInput | None = None,
     ):
-        data = Currency._default_manager.filter(pk=info.context.currencie.pk)
+        data = Currency._default_manager.filter(user=info.context.user)
         data, kwargs = filter_order_paginate(data, filter, order, paginator)
         return ListCurrenciesQueryPayload(data=data, **kwargs)  # type: ignore
 
@@ -98,12 +97,31 @@ class CreateCurrencyMutation(DjangoModelFormMutation):
         return_field_name = "data"
 
     @classmethod
+    @login_required
     def mutate_and_get_payload(cls, root, info, **input):
         input["user"] = info.context.user.id
         return super().mutate_and_get_payload(root, info, **input)
 
 
-class UpdateCurrencyMutation(DjangoModelFormMutation):
+class ExistingCurrencyMutation(DjangoModelFormMutation):
+    class Meta:
+        abstract = True
+
+    @classmethod
+    @login_required
+    def mutate_and_get_payload(cls, root, info, **input):
+        return super().mutate_and_get_payload(root, info, **input)
+
+    @classmethod
+    def get_form_kwargs(cls, root, info, **input):
+        kwargs = super().get_form_kwargs(root, info, **input)
+        cls._meta.model._default_manager.filter(user=info.context.user).get(
+            pk=kwargs["instance"].pk  # type: ignore
+        )
+        return kwargs
+
+
+class UpdateCurrencyMutation(ExistingCurrencyMutation):
     class Input:
         # manually define the required id for the input
         id = ID(required=True)
@@ -114,14 +132,8 @@ class UpdateCurrencyMutation(DjangoModelFormMutation):
         exclude_fields = ("id",)
         return_field_name = "data"
 
-    @classmethod
-    @login_required
-    def perform_mutate(cls, form, info):
-        info_user_check(info, form.instance.user)
-        return super().perform_mutate(form, info)
 
-
-class DeleteCurrencyMutation(DjangoModelFormMutation):
+class DeleteCurrencyMutation(ExistingCurrencyMutation):
     class Input:
         id = ID(required=True)
 
@@ -131,9 +143,7 @@ class DeleteCurrencyMutation(DjangoModelFormMutation):
         return_field_name = "data"
 
     @classmethod
-    @login_required
     def perform_mutate(cls, form: DeleteCurrencyForm, info):
-        info_user_check(info, form.instance)
         obj: Currency = form.save(commit=False)
         instance: Currency = form._meta.model._default_manager.get(pk=obj.pk)
         obj.delete()

@@ -31,15 +31,15 @@ class AccountType(DjangoObjectType):
 
     class Meta:
         model = Account
-        fields = (
-            "id",
-            "currency",
-            "name",
-        )
+        fields = ("id", "currency", "name", "transaction_set")
 
     @staticmethod
     def resolve_balance(parent: Account, info):
         return parent.balance
+
+    @staticmethod
+    def resolve_transaction_set(parent: Account, info):
+        return parent.transaction_set.order_by("datetime", "id")
 
 
 # queries

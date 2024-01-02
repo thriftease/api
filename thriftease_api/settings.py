@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "users",
     "authentication",
     "currencies",
+    "accounts",
 ]
 
 MIDDLEWARE = [

@@ -14,12 +14,18 @@ class Account(models.Model):
 
     transaction_set: QuerySet[Any]
 
-    def get_balance(self, **filters):
-        transactions = self.transaction_set.filter(**filters).order_by("datetime", "id")
+    @classmethod
+    def get_balance_from_transactions(cls, transaction_set: QuerySet[Any]):
+        transactions = transaction_set.order_by("datetime", "id")
         if transactions:
             amounts = map(lambda e: Decimal(e.amount), transactions)
             return sum(amounts)
         return Decimal(0)
+
+    def get_balance(self, **filters):
+        return self.get_balance_from_transactions(
+            self.transaction_set.filter(**filters)
+        )
 
     @property
     def balance(self):

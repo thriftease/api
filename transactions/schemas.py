@@ -2,6 +2,7 @@ from typing import Any
 
 from graphene import (
     ID,
+    Decimal,
     Field,
     InputObjectType,
     List,
@@ -26,6 +27,8 @@ from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
 
 
 class TransactionType(DjangoObjectType):
+    resulting_account_balance = Decimal()
+
     class Meta:
         model = Transaction
         fields = (
@@ -36,6 +39,10 @@ class TransactionType(DjangoObjectType):
             "name",
             "description",
         )
+
+    @staticmethod
+    def resolve_resulting_account_balance(parent: Transaction, info):
+        return parent.resulting_account_balance
 
 
 # queries

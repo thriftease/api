@@ -17,3 +17,9 @@ class Transaction(models.Model):
     datetime = models.DateTimeField(blank=True, default=auto_now_add)
     name = models.CharField(blank=True, max_length=50, default="")
     description = models.TextField(blank=True, max_length=250, default="")
+
+    @property
+    def resulting_account_balance(self):
+        return Account.get_balance_from_transactions(
+            type(self).objects.filter(account=self.account, datetime__lte=self.datetime)
+        )

@@ -28,18 +28,19 @@ from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
 
 class AccountType(DjangoObjectType):
     balance = Decimal()
+    future_balance = Decimal()
 
     class Meta:
         model = Account
-        fields = ("id", "currency", "name", "transaction_set")
+        fields = ("id", "currency", "name")
 
     @staticmethod
     def resolve_balance(parent: Account, info):
         return parent.balance
 
     @staticmethod
-    def resolve_transaction_set(parent: Account, info):
-        return parent.transaction_set.order_by("datetime", "id")
+    def resolve_future_balance(parent: Account, info):
+        return parent.future_balance
 
 
 # queries

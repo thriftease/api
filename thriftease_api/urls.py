@@ -16,9 +16,15 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 from graphene_django.views import GraphQLView
+
+from thriftease_api import settings
+
+gql_view = GraphQLView.as_view(graphiql=True)
+gql_view = csrf_exempt(gql_view) if getattr(settings, "DEBUG", False) else gql_view
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
-    path("graphql", GraphQLView.as_view(graphiql=True)),
+    path("graphql", gql_view),
 ]

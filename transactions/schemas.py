@@ -6,12 +6,19 @@ from graphene import (
     Field,
     InputObjectType,
     List,
+    NonNull,
     ObjectType,
+    String,
 )
 from graphene_django import DjangoObjectType
-from graphene_django.forms.mutation import DjangoModelFormMutation
+from graphene_django.forms.mutation import (
+    DjangoModelFormMutation,
+    _set_errors_flag_to_context,
+)
+from graphene_django.types import ErrorType
 from graphql_jwt.decorators import login_required
 
+from tags.models import Tag
 from transactions.filters import TransactionFilter
 from transactions.forms import (
     CreateTransactionForm,
@@ -38,6 +45,7 @@ class TransactionType(DjangoObjectType):
             "datetime",
             "name",
             "description",
+            "tag_set",
         )
 
     @staticmethod
@@ -97,8 +105,50 @@ class TransactionQuery(ObjectType):
         return ListTransactionsQueryPayload(data=data, **kwargs)  # type: ignore
 
 
+def tag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
+    existing_tags = []
+    new_tags = []
+    for t in tags:
+        tg = Tag._default_manager.filter(
+            user=transaction.account.currency.user, name=t
+        ).first()
+        if tg:
+            existing_tags.append(tg)
+        else:
+            new_tags.append(Tag(user=transaction.account.currency.user, name=t))
+    for t in tag_ids:
+        tg = Tag._default_manager.filter(
+            user=transaction.account.currency.user, pk=t
+        ).first()
+        if tg:
+            existing_tags.append(tg)
+    Tag._default_manager.bulk_create(new_tags, ignore_conflicts=True)
+    transaction.tag_set.add(*existing_tags, *new_tags)  # type: ignore
+
+
+def untag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
+    existing_tags = []
+    for t in tags:
+        tg = Tag._default_manager.filter(
+            user=transaction.account.currency.user, name=t
+        ).first()
+        if tg:
+            existing_tags.append(tg)
+    for t in tag_ids:
+        tg = Tag._default_manager.filter(
+            user=transaction.account.currency.user, pk=t
+        ).first()
+        if tg:
+            existing_tags.append(tg)
+    transaction.tag_set.remove(*existing_tags)  # type: ignore
+
+
 # mutations
 class CreateTransactionMutation(DjangoModelFormMutation):
+    class Input:
+        tags = List(NonNull(String))
+        tag_ids = List(NonNull(ID))
+
     class Meta:
         form_class = CreateTransactionForm
         exclude_fields = ("id",)
@@ -107,7 +157,19 @@ class CreateTransactionMutation(DjangoModelFormMutation):
     @classmethod
     @login_required
     def mutate_and_get_payload(cls, root, info, **input):
-        return super().mutate_and_get_payload(root, info, **input)
+        tags = input.pop("tags", [])
+        tag_ids = input.pop("tag_ids", [])
+        form = cls.get_form(root, info, **input)
+
+        if form.is_valid():
+            rv = cls.perform_mutate(form, info)
+            tag(form.instance, tags, tag_ids)
+            return rv
+        else:
+            errors = ErrorType.from_errors(form.errors)
+            _set_errors_flag_to_context(info)
+
+            return cls(errors=errors)
 
 
 class ExistingTransactionMutation(DjangoModelFormMutation):
@@ -134,12 +196,36 @@ class UpdateTransactionMutation(ExistingTransactionMutation):
     class Input:
         # manually define the required id for the input
         id = ID(required=True)
+        add_tags = List(NonNull(String))
+        add_tag_ids = List(NonNull(ID))
+        remove_tags = List(NonNull(String))
+        remove_tag_ids = List(NonNull(ID))
 
     class Meta:
         form_class = UpdateTransactionForm
         # exclude the default provided non-required id field from the input
         exclude_fields = ("id",)
         return_field_name = "data"
+
+    @classmethod
+    @login_required
+    def mutate_and_get_payload(cls, root, info, **input):
+        add_tags = input.pop("add_tags", [])
+        add_tag_ids = input.pop("add_tag_ids", [])
+        remove_tags = input.pop("remove_tags", [])
+        remove_tag_ids = input.pop("remove_tag_ids", [])
+        form = cls.get_form(root, info, **input)
+
+        if form.is_valid():
+            rv = cls.perform_mutate(form, info)
+            untag(form.instance, remove_tags, remove_tag_ids)
+            tag(form.instance, add_tags, add_tag_ids)
+            return rv
+        else:
+            errors = ErrorType.from_errors(form.errors)
+            _set_errors_flag_to_context(info)
+
+            return cls(errors=errors)
 
 
 class DeleteTransactionMutation(ExistingTransactionMutation):

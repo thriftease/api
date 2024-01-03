@@ -1,6 +1,8 @@
 from decimal import Decimal
+from typing import Any
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from accounts.models import Account
@@ -17,6 +19,8 @@ class Transaction(models.Model):
     datetime = models.DateTimeField(blank=True, default=auto_now_add)
     name = models.CharField(blank=True, max_length=50, default="")
     description = models.TextField(blank=True, max_length=250, default="")
+
+    tag_set: QuerySet[Any]
 
     @property
     def resulting_account_balance(self):

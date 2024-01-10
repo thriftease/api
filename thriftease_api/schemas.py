@@ -1,7 +1,7 @@
 import graphene
 
 from accounts.schemas import AccountMutation, AccountQuery
-from authentication.schemas import AuthMutation
+from authentication.schemas import AuthMutation, AuthQuery
 from currencies.schemas import CurrencyMutation, CurrencyQuery
 from tags.schemas import TagMutation, TagQuery
 from thriftease_api import settings
@@ -11,6 +11,7 @@ from users.schemas import UserMutation, UserQuery
 
 class Query(
     UserQuery,
+    AuthQuery,
     CurrencyQuery,
     AccountQuery,
     TransactionQuery,

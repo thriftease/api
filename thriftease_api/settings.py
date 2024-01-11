@@ -162,3 +162,6 @@ GRAPHQL_JWT = {
     "JWT_EXPIRATION_DELTA": timedelta(days=1) if DEBUG else timedelta(weeks=12),
     "JWT_ALLOW_REFRESH": False,
 }
+
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

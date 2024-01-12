@@ -79,6 +79,21 @@ class AuthSendResetMutationPayload(Mutation):
             return cls(sent=False)
 
 
+class AuthVerifyResetMutationPayload(Mutation):
+    class Arguments:
+        token = String(required=True)
+
+    user = Field(UserType)
+
+    @classmethod
+    def mutate(cls, root, info, token: str):
+        reset = AuthReset.decode(token)
+        if reset.expired:
+            reset.delete()
+            return cls(user=None)
+        return cls(user=reset.user)
+
+
 class AuthApplyResetMutation(DjangoModelFormMutation):
     class Input:
         token = String(required=True)
@@ -125,3 +140,4 @@ class AuthMutation(ObjectType):
     auth_verify = AuthVerifyMutationPayload.Field()
     auth_send_reset = AuthSendResetMutationPayload.Field()
     auth_apply_reset = AuthApplyResetMutation.Field()
+    auth_verify_reset = AuthVerifyResetMutationPayload.Field()

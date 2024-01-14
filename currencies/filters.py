@@ -10,7 +10,7 @@ class CurrencyFilter(FilterSet):
         fields = {
             "id": ["icontains"],
             "user__id": ["icontains"],
-            "abbreviation": ["exact", "icontains"],
+            "abbreviation": ["iexact", "icontains"],
             "symbol": ["icontains"],
             "name": ["icontains"],
         }

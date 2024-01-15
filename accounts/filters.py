@@ -1,10 +1,8 @@
-from django.db.models import Q
-from django_filters import FilterSet
-
 from accounts.models import Account
+from utils.filter import OrFilterSet
 
 
-class AccountFilter(FilterSet):
+class AccountFilter(OrFilterSet):
     class Meta:
         model = Account
         fields = {
@@ -12,16 +10,3 @@ class AccountFilter(FilterSet):
             "currency__id": ["icontains"],
             "name": ["icontains"],
         }
-
-    @property
-    def qs(self):
-        qs = super().qs
-        if self.data:
-            expr = None
-            for k, v in self.data.items():
-                if v is None:
-                    continue
-                q = Q(**{k: v})
-                expr = q if expr is None else expr | q
-                qs = qs.filter(expr)
-        return qs

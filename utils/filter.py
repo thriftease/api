@@ -1,6 +1,7 @@
 from typing import Any, TypeVar
 
 from django.db import models
+from django.db.models import Q
 from django.forms import ModelForm
 from django_filters import FilterSet
 from graphene import Enum, InputObjectType
@@ -18,6 +19,25 @@ class FilterQueryInput(InputObjectType):
         cls, queryset: models.QuerySet[Any], **filters: Any
     ) -> models.QuerySet[Any]:
         return cls.filter_class(filters, queryset).qs  # type: ignore
+
+
+class OrFilterSet(FilterSet):
+    class Meta:
+        abstract = True
+
+    @property
+    def qs(self):
+        qs = self.queryset.all()
+        if self.data:
+            expr = None
+            for k, v in self.data.items():
+                if v is None:
+                    continue
+                # use or condition in chaining the filters, hence the '|' operator
+                q = Q(**{k: v})
+                expr = q if expr is None else expr | q
+            qs = qs.filter(expr)
+        return qs
 
 
 def form_to_filter_input_class(

@@ -18,6 +18,7 @@ from graphene_django.forms.mutation import (
 from graphene_django.types import ErrorType
 from graphql_jwt.decorators import login_required
 
+from accounts.models import Account
 from tags.models import Tag
 from transactions.filters import TransactionFilter
 from transactions.forms import (
@@ -144,7 +145,25 @@ def untag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
 
 
 # mutations
-class CreateTransactionMutation(DjangoModelFormMutation):
+class BaseTransactionMutation(DjangoModelFormMutation):
+    class Meta:
+        abstract = True
+
+    @classmethod
+    @login_required
+    def mutate_and_get_payload(cls, root, info, **input):
+        cls.check_user(info, **input)
+        return super().mutate_and_get_payload(root, info, **input)
+
+    @classmethod
+    def check_user(cls, info, **input):
+        pk = input.get("account", None)
+        if pk:
+            return Account.objects.get(pk=pk, currency__user=info.context.user)
+        return True
+
+
+class CreateTransactionMutation(BaseTransactionMutation):
     class Input:
         tags = List(NonNull(String))
         tag_ids = List(NonNull(ID))
@@ -157,6 +176,8 @@ class CreateTransactionMutation(DjangoModelFormMutation):
     @classmethod
     @login_required
     def mutate_and_get_payload(cls, root, info, **input):
+        cls.check_user(info, **input)
+
         tags = input.pop("tags", [])
         tag_ids = input.pop("tag_ids", [])
         form = cls.get_form(root, info, **input)
@@ -172,14 +193,9 @@ class CreateTransactionMutation(DjangoModelFormMutation):
             return cls(errors=errors)
 
 
-class ExistingTransactionMutation(DjangoModelFormMutation):
+class ExistingTransactionMutation(BaseTransactionMutation):
     class Meta:
         abstract = True
-
-    @classmethod
-    @login_required
-    def mutate_and_get_payload(cls, root, info, **input):
-        return super().mutate_and_get_payload(root, info, **input)
 
     @classmethod
     def get_form_kwargs(cls, root, info, **input):
@@ -210,6 +226,8 @@ class UpdateTransactionMutation(ExistingTransactionMutation):
     @classmethod
     @login_required
     def mutate_and_get_payload(cls, root, info, **input):
+        cls.check_user(info, **input)
+
         add_tags = input.pop("add_tags", [])
         add_tag_ids = input.pop("add_tag_ids", [])
         remove_tags = input.pop("remove_tags", [])

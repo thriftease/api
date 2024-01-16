@@ -20,6 +20,7 @@ from accounts.forms import (
     UpdateAccountForm,
 )
 from accounts.models import Account
+from currencies.models import Currency
 from utils import filter_order_paginate
 from utils.filter import filter_to_filter_input_class
 from utils.order import form_to_order_argument
@@ -94,26 +95,34 @@ class AccountQuery(ObjectType):
 
 
 # mutations
-class CreateAccountMutation(DjangoModelFormMutation):
-    class Meta:
-        form_class = CreateAccountForm
-        exclude_fields = ("id",)
-        return_field_name = "data"
-
-    @classmethod
-    @login_required
-    def mutate_and_get_payload(cls, root, info, **input):
-        return super().mutate_and_get_payload(root, info, **input)
-
-
-class ExistingAccountMutation(DjangoModelFormMutation):
+class BaseAccountMutation(DjangoModelFormMutation):
     class Meta:
         abstract = True
 
     @classmethod
     @login_required
     def mutate_and_get_payload(cls, root, info, **input):
+        cls.check_user(info, **input)
         return super().mutate_and_get_payload(root, info, **input)
+
+    @classmethod
+    def check_user(cls, info, **input):
+        pk = input.get("currency", None)
+        if pk:
+            return Currency.objects.get(pk=pk, user=info.context.user)
+        return True
+
+
+class CreateAccountMutation(BaseAccountMutation):
+    class Meta:
+        form_class = CreateAccountForm
+        exclude_fields = ("id",)
+        return_field_name = "data"
+
+
+class ExistingAccountMutation(BaseAccountMutation):
+    class Meta:
+        abstract = True
 
     @classmethod
     def get_form_kwargs(cls, root, info, **input):

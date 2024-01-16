@@ -5,7 +5,9 @@ from graphene import (
     Field,
     InputObjectType,
     List,
+    NonNull,
     ObjectType,
+    String,
 )
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
@@ -51,7 +53,7 @@ class ListCurrenciesQueryPayload(PaginatorQueryPayload, ObjectType):
 
 
 class CurrencyFilterQueryInput(filter_to_filter_input_class(CurrencyFilter)):  # type: ignore[misc]
-    pass
+    abbreviation__in = List(NonNull(String))
 
 
 class CurrencyQuery(ObjectType):

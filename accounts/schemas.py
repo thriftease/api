@@ -2,11 +2,13 @@ from typing import Any
 
 from graphene import (
     ID,
+    Boolean,
     Decimal,
     Field,
     InputObjectType,
     List,
     ObjectType,
+    String,
 )
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
@@ -71,6 +73,9 @@ class AccountQuery(ObjectType):
         order=form_to_order_argument(OrderAccountForm),
         paginator=PaginatorQueryInput(),
     )
+    account_existing = Field(
+        Boolean, currency=ID(required=True), name=String(required=True)
+    )
 
     @staticmethod
     @login_required
@@ -92,6 +97,17 @@ class AccountQuery(ObjectType):
         data = Account._default_manager.filter(currency__user=info.context.user)
         data, kwargs = filter_order_paginate(data, filter, order, paginator)
         return ListAccountsQueryPayload(data=data, **kwargs)  # type: ignore
+
+    @staticmethod
+    @login_required
+    def resolve_account_existing(root, info, currency: int, name: str):
+        try:
+            Account._default_manager.get(
+                currency=currency, name=name, currency__user=info.context.user
+            )
+            return True
+        except Exception:
+            return False
 
 
 # mutations

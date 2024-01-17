@@ -14,6 +14,9 @@ class Account(models.Model):
 
     transaction_set: QuerySet[Any]
 
+    class Meta:
+        unique_together = (("currency", "name"),)
+
     @classmethod
     def get_balance_from_transactions(cls, transaction_set: QuerySet[Any]):
         transactions = transaction_set.order_by("datetime", "id")

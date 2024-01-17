@@ -23,7 +23,7 @@ class Account(models.Model):
         if transactions:
             amounts = map(lambda e: Decimal(e.amount), transactions)
             return sum(amounts)
-        return Decimal(0)
+        return Decimal("0.00")
 
     def get_balance(self, **filters):
         return self.get_balance_from_transactions(

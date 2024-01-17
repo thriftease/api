@@ -7,6 +7,6 @@ class AccountFilter(OrFilterSet):
         model = Account
         fields = {
             "id": ["icontains"],
-            "currency__id": ["icontains"],
-            "name": ["icontains"],
+            "currency__id": ["icontains", "exact"],
+            "name": ["icontains", "exact"],
         }

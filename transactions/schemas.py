@@ -2,7 +2,9 @@ from typing import Any
 
 from graphene import (
     ID,
+    Boolean,
     Decimal,
+    Enum,
     Field,
     InputObjectType,
     List,
@@ -28,14 +30,20 @@ from transactions.forms import (
     UpdateTransactionForm,
 )
 from transactions.models import Transaction
+from transactions.models import TransactionOperation as OriginalTransactionOperation
 from utils import filter_order_paginate
 from utils.filter import filter_to_filter_input_class
 from utils.order import form_to_order_argument
 from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
 
+TransactionOperation = Enum.from_enum(OriginalTransactionOperation)
+
 
 class TransactionType(DjangoObjectType):
-    resulting_account_balance = Decimal()
+    new_account_balance = Decimal()
+    old_account_balance = Decimal()
+    scheduled = Boolean()
+    operation = Field(TransactionOperation)
 
     class Meta:
         model = Transaction
@@ -50,8 +58,20 @@ class TransactionType(DjangoObjectType):
         )
 
     @staticmethod
-    def resolve_resulting_account_balance(parent: Transaction, info):
-        return parent.resulting_account_balance
+    def resolve_new_account_balance(parent: Transaction, info):
+        return parent.new_account_balance
+
+    @staticmethod
+    def resolve_old_account_balance(parent: Transaction, info):
+        return parent.old_account_balance
+
+    @staticmethod
+    def resolve_scheduled(parent: Transaction, info):
+        return parent.scheduled
+
+    @staticmethod
+    def resolve_operation(parent: Transaction, info):
+        return parent.operation
 
 
 # queries

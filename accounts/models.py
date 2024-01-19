@@ -1,34 +1,29 @@
 from decimal import Decimal
-from typing import Any
 
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
 from currencies.models import Currency
+from transactions.models import Transaction
 
 
 class Account(models.Model):
     currency = models.ForeignKey(Currency, models.CASCADE, default=None)
     name = models.CharField(max_length=50, default="")
 
-    transaction_set: QuerySet[Any]
+    transaction_set: QuerySet[Transaction]
 
     class Meta:
         unique_together = (("currency", "name"),)
 
-    @classmethod
-    def get_balance_from_transactions(cls, transaction_set: QuerySet[Any]):
-        transactions = transaction_set.order_by("datetime", "id")
-        if transactions:
-            amounts = map(lambda e: Decimal(e.amount), transactions)
-            return sum(amounts)
-        return Decimal("0.00")
-
     def get_balance(self, **filters):
-        return self.get_balance_from_transactions(
-            self.transaction_set.filter(**filters)
+        transaction = (
+            self.transaction_set.filter(**filters).order_by("datetime", "id").last()
         )
+        if transaction:
+            return transaction.new_account_balance
+        return Decimal("0.00")
 
     @property
     def balance(self):

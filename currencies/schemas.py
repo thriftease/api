@@ -1,5 +1,7 @@
 from typing import Any
 
+import requests as req
+from forex_python.converter import CurrencyCodes
 from graphene import (
     ID,
     Field,
@@ -25,6 +27,16 @@ from utils import filter_order_paginate
 from utils.filter import filter_to_filter_input_class
 from utils.order import form_to_order_argument
 from utils.paginator import PaginatorQueryInput, PaginatorQueryPayload
+
+
+class GivenCurrencyType(DjangoObjectType):
+    class Meta:
+        model = Currency
+        fields = (
+            "abbreviation",
+            "symbol",
+            "name",
+        )
 
 
 class CurrencyType(DjangoObjectType):
@@ -66,12 +78,36 @@ class CurrencyQuery(ObjectType):
         order=form_to_order_argument(OrderCurrencyForm),
         paginator=PaginatorQueryInput(),
     )
+    list_given_currencies = List(NonNull(GivenCurrencyType))
 
     @staticmethod
     @login_required
     def resolve_get_currency(root, info, input: GetCurrencyQueryInput):
         data = Currency._default_manager.get(pk=input.id, user=info.context.user)
         return GetCurrencyQueryPayload(data=data)  # type: ignore
+
+    @staticmethod
+    @login_required
+    def resolve_list_given_currencies(root, info):
+        res = req.get(
+            "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies.min.json"
+        )
+        rv = []
+        if res.status_code == 200:
+            result: dict[str, str] = res.json()  # type: ignore
+            if result:
+                codes = CurrencyCodes()
+                for key, val in result.items():
+                    ukey = key.upper()
+                    print(ukey, codes.get_symbol(ukey))
+                    symbol = codes.get_symbol(ukey) or ukey
+                    rv.append(
+                        GivenCurrencyType(
+                            abbreviation=key, name=val or key, symbol=symbol
+                        )  # type: ignore
+                    )
+
+        return rv
 
     @staticmethod
     @login_required

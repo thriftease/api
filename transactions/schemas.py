@@ -143,7 +143,7 @@ def tag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
         ).first()
         if tg:
             existing_tags.append(tg)
-    Tag._default_manager.bulk_create(new_tags, ignore_conflicts=True)
+    new_tags = Tag.objects.bulk_create(new_tags)
     transaction.tag_set.add(*existing_tags, *new_tags)  # type: ignore
 
 

@@ -135,7 +135,7 @@ def tag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
         ).first()
         if tg:
             existing_tags.append(tg)
-        else:
+        elif t.strip():
             new_tags.append(Tag(user=transaction.account.currency.user, name=t))
     for t in tag_ids:
         tg = Tag._default_manager.filter(

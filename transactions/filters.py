@@ -8,6 +8,8 @@ class TransactionFilter(OrFilterSet):
         fields = {
             "id": ["icontains"],
             "account__id": ["icontains"],
+            "account__name": ["icontains"],
+            "account__currency__name": ["icontains"],
             "amount": ["icontains"],
             "datetime": [
                 "icontains",
@@ -25,4 +27,5 @@ class TransactionFilter(OrFilterSet):
             ],
             "name": ["icontains"],
             "description": ["icontains"],
+            "tag__name": ["icontains"],
         }

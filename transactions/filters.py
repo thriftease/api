@@ -1,8 +1,13 @@
+import django_filters as dj
+
 from transactions.models import Transaction
 from utils.filter import OrFilterSet
 
 
 class TransactionFilter(OrFilterSet):
+    operation = dj.CharFilter()
+    scheduled = dj.BooleanFilter()
+
     class Meta:
         model = Transaction
         fields = {

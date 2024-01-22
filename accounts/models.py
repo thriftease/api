@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.db.models import F, OuterRef
+from django.db.models.functions import Coalesce
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
@@ -14,15 +15,17 @@ class AccountManager(models.Manager):
         qs: QuerySet["Account"] = super().get_queryset()  # type: ignore
         ts = Transaction.objects  # type: ignore
         fields = dict(
-            balance=(
+            balance=Coalesce(
                 ts.values("new_account_balance")
                 .filter(account_id=OuterRef("pk"), datetime__lte=timezone.now())
-                .order_by("-datetime", "-id")[:1]
+                .order_by("-datetime", "-id")[:1],
+                Decimal("0"),
             ),
-            future_balance=(
+            future_balance=Coalesce(
                 ts.values("new_account_balance")
                 .filter(account_id=OuterRef("pk"))
-                .order_by("-datetime", "-id")[:1]
+                .order_by("-datetime", "-id")[:1],
+                Decimal("0"),
             ),
         )
         qs = qs.alias(**fields).annotate(**{k: F(k) for k in fields})

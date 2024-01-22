@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Any
 
 from django.db import models
-from django.db.models import Case, F, OuterRef, Q, Sum, Value, When
+from django.db.models import Case, F, OuterRef, Q, Sum, Value, When, Window
 from django.db.models.functions import Coalesce
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -15,30 +15,37 @@ class TransactionOperation(StrEnum):
 
 
 class TransactionManager(models.Manager):
+    @classmethod
+    def get_old_transactions(cls, transactions: QuerySet["Transaction"]):
+        return (
+            transactions.values("amount")
+            .filter(
+                (
+                    Q(datetime__lt=OuterRef("datetime"))
+                    | (Q(datetime=OuterRef("datetime")) & Q(pk__lt=OuterRef("pk")))
+                ),
+                account=OuterRef("account"),
+            )
+            .order_by("datetime", "id")
+        )
+
     def get_queryset(self):
         qs: QuerySet["Transaction"] = super().get_queryset()  # type: ignore
+        # needed to use Window here since apparently doing .values(sum=Sum(...))
+        # adds a group by statement to the query which makes the calc. wrong
         fields = dict(
             old_account_balance=Coalesce(
-                (
-                    qs.values(sum=Sum("amount"))
-                    .filter(
-                        (
-                            Q(datetime__lt=OuterRef("datetime"))
-                            | (
-                                Q(datetime=OuterRef("datetime"))
-                                & ~Q(pk=OuterRef("pk"))
-                                & Q(pk__lt=OuterRef("pk"))
-                            )
-                        ),
-                        account=OuterRef("account"),
-                    )
-                    .order_by("datetime", "id")
-                ),
+                self.get_old_transactions(qs)
+                .annotate(sum=(Window(Sum("amount"))))
+                .values("sum"),
                 Decimal("0"),
             ),
             new_account_balance=F("old_account_balance") + F("amount"),
             scheduled=Case(
-                When(datetime__gt=timezone.now(), then=True),
+                When(
+                    datetime__gt=timezone.now(),
+                    then=True,
+                ),
                 default=False,
             ),
             operation=Case(

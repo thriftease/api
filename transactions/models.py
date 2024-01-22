@@ -63,6 +63,9 @@ class TransactionManager(models.Manager):
 class Transaction(models.Model):
     objects = TransactionManager()
 
+    class Meta:
+        base_manager_name = "objects"
+
     def auto_now_add():  # type: ignore
         return timezone.now()
 

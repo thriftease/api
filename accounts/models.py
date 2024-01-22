@@ -38,6 +38,7 @@ class Account(models.Model):
     transaction_set: QuerySet[Transaction]
 
     class Meta:
+        base_manager_name = "objects"
         unique_together = (("currency", "name"),)
 
     balance = Decimal("0")

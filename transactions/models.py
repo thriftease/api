@@ -1,10 +1,10 @@
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any, Self
+from typing import Any
 
 from django.db import models
-from django.db.models import Q
-from django.db.models.manager import BaseManager
+from django.db.models import Case, F, OuterRef, Q, Sum, Value, When
+from django.db.models.functions import Coalesce
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
@@ -14,7 +14,48 @@ class TransactionOperation(StrEnum):
     CREDIT = "CREDIT"
 
 
+class TransactionManager(models.Manager):
+    def get_queryset(self):
+        qs: QuerySet["Transaction"] = super().get_queryset()  # type: ignore
+        fields = dict(
+            old_account_balance=Coalesce(
+                (
+                    qs.values(sum=Sum("amount"))
+                    .filter(
+                        (
+                            Q(datetime__lt=OuterRef("datetime"))
+                            | (
+                                Q(datetime=OuterRef("datetime"))
+                                & ~Q(pk=OuterRef("pk"))
+                                & Q(pk__lt=OuterRef("pk"))
+                            )
+                        ),
+                        account=OuterRef("account"),
+                    )
+                    .order_by("datetime", "id")
+                ),
+                Decimal("0"),
+            ),
+            new_account_balance=F("old_account_balance") + F("amount"),
+            scheduled=Case(
+                When(datetime__gt=timezone.now(), then=True),
+                default=False,
+            ),
+            operation=Case(
+                When(
+                    amount__lt=Decimal("0"),
+                    then=Value(TransactionOperation.DEBIT.value),
+                ),
+                default=Value(TransactionOperation.CREDIT.value),
+            ),
+        )
+        qs = qs.alias(**fields).annotate(**{k: F(k) for k in fields})
+        return qs
+
+
 class Transaction(models.Model):
+    objects = TransactionManager()
+
     def auto_now_add():  # type: ignore
         return timezone.now()
 
@@ -28,37 +69,7 @@ class Transaction(models.Model):
 
     tag_set: QuerySet[Any]
 
-    @classmethod
-    def sum(cls, transaction_set: BaseManager[Self]):
-        transactions = transaction_set.order_by("datetime", "id")
-        if transactions:
-            amounts = map(lambda e: Decimal(e.amount), transactions)
-            return sum(amounts)
-        return Decimal("0.00")
-
-    @property
-    def new_account_balance(self):
-        return self.old_account_balance + Decimal(self.amount)
-
-    @property
-    def old_account_balance(self):
-        transactions = type(self).objects.filter(
-            (
-                Q(datetime__lt=self.datetime)
-                | (Q(datetime=self.datetime) & ~Q(pk=self.pk) & Q(pk__lt=self.pk))
-            ),
-            account=self.account,
-        )
-        return self.sum(transactions)
-
-    @property
-    def scheduled(self):
-        return self.datetime > timezone.now()
-
-    @property
-    def operation(self) -> TransactionOperation:
-        return (
-            TransactionOperation.DEBIT
-            if Decimal(self.amount) < 0
-            else TransactionOperation.CREDIT
-        )
+    old_account_balance = Decimal("0")
+    new_account_balance = Decimal("0")
+    scheduled = False
+    operation = TransactionOperation = TransactionOperation.CREDIT

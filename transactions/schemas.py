@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.forms import ModelForm
 from graphene import (
     ID,
     Boolean,
@@ -211,6 +212,14 @@ class CreateTransactionMutation(BaseTransactionMutation):
             _set_errors_flag_to_context(info)
 
             return cls(errors=errors)
+
+    @classmethod
+    def perform_mutate(cls, form: ModelForm, info):
+        obj: Transaction = form.save()
+        # explicitly re-fetched using .get since the annotations only exist
+        # at the manager level (.objects)
+        kwargs = {cls._meta.return_field_name: Transaction.objects.get(pk=obj.pk)}
+        return cls(errors=[], **kwargs)
 
 
 class ExistingTransactionMutation(BaseTransactionMutation):

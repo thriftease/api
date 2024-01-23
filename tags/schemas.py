@@ -2,10 +2,12 @@ from typing import Any
 
 from graphene import (
     ID,
+    Boolean,
     Field,
     InputObjectType,
     List,
     ObjectType,
+    String,
 )
 from graphene_django import DjangoObjectType
 from graphene_django.forms.mutation import DjangoModelFormMutation
@@ -60,6 +62,7 @@ class TagQuery(ObjectType):
         order=form_to_order_argument(OrderTagForm),
         paginator=PaginatorQueryInput(),
     )
+    tag_existing = Field(Boolean, name=String(required=True))
 
     @staticmethod
     @login_required
@@ -79,6 +82,15 @@ class TagQuery(ObjectType):
         data = Tag._default_manager.filter(user=info.context.user)
         data, kwargs = filter_order_paginate(data, filter, order, paginator)
         return ListTagsQueryPayload(data=data, **kwargs)  # type: ignore
+
+    @staticmethod
+    @login_required
+    def resolve_tag_existing(root, info, name: str):
+        try:
+            Tag._default_manager.get(name=name, user=info.context.user)
+            return True
+        except Exception:
+            return False
 
 
 # mutations

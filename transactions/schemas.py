@@ -127,9 +127,21 @@ class TransactionQuery(ObjectType):
         return ListTransactionsQueryPayload(data=data, **kwargs)  # type: ignore
 
 
+def unique(values: list[str]):
+    for idx in range(len(values) - 1, -1, -1):
+        t = values[idx]
+        if t in values[:idx]:
+            values.pop(idx)
+    return values
+
+
 def tag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
+    unique(tags)
+    unique(tag_ids)
+
     existing_tags = []
     new_tags = []
+
     for t in tags:
         tg = Tag._default_manager.filter(
             user=transaction.account.currency.user, name=t
@@ -149,6 +161,9 @@ def tag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
 
 
 def untag(transaction: Transaction, tags: list[str], tag_ids: list[str]):
+    unique(tags)
+    unique(tag_ids)
+
     existing_tags = []
     for t in tags:
         tg = Tag._default_manager.filter(
